@@ -15,7 +15,7 @@ final class BeerAPITests: XCTestCase {
     private var sut: BeerAPI!
     private var mockURLSession: MockURLSession!
     
-    private enum TestError: Error, Equatable {
+    private enum TestError: Error {
         case testError
     }
     
@@ -54,7 +54,7 @@ final class BeerAPITests: XCTestCase {
         let resultBeer = try? await sut.getBeers()
         XCTAssertEqual(resultBeer, expectedEmptyArray)
     }
-    
+
     func test_getBeers_invalidURL_throwsCouldNotConstructURLError() async {
         sut = BeerAPIImpl(baseURL: "<", session: mockURLSession)
         do {
@@ -62,8 +62,19 @@ final class BeerAPITests: XCTestCase {
             XCTFail("Expected to fail")
             
         } catch {
-            XCTAssertEqual(error as? BeerAPIImpl.BeerAPIError,
-                           BeerAPIImpl.BeerAPIError.couldNotConstructURL)
+            XCTAssertEqual(error as? BeerAPIError, .couldNotConstructURL)
+        }
+    }
+    
+    func test_getBeers_offline_throwsError() async {
+        let testError = NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet)
+        mockURLSession.stubDataResponse = .failure(testError)
+        do {
+            _ = try await sut.getBeers()
+            XCTFail("Expected to fail")
+            
+        } catch {
+            XCTAssertEqual(error as? BeerAPIError, .offline)
         }
     }
     

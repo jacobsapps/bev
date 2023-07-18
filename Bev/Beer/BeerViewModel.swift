@@ -32,7 +32,7 @@ final class BeerViewModel: ObservableObject {
     
     func refreshBeers() {
         Task {
-            await loadBeers()
+            await repository.loadBeers()
         }
     }
     

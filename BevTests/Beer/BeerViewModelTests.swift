@@ -52,7 +52,7 @@ final class BeerViewModelTests: XCTestCase {
         XCTAssertEqual(mockBeerRepository.loadBeersCallCount, 1)
     }
     
-    func test_refreshBeers_callsLoadOnRepository() {
+    func test_refreshBeers_tellsRepositoryToLoad() {
         mockBeerRepository.stubLoadBeersResponse = .success([])
         let exp = expectation(description: #function)
         mockBeerRepository.didLoadBeers = { exp.fulfill() }

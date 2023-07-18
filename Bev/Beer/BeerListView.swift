@@ -5,34 +5,39 @@
 //  Created by Jacob Bartlett on 01/04/2023.
 //
 
+import Domain
 import SwiftUI
 
-public struct BeerListView: View {
+struct BeerListView: View {
     
     @StateObject var viewModel = BeerViewModel()
+    @Namespace private var animation
+    @State private var beer: Beer?
     
-    public init() {}
-    
-    public var body: some View {
-        NavigationView {
-            beersView
+    var body: some View {
+        NavigationStack {
+            beerListView
                 .overlay(loadingIndicator)
                 .navigationTitle("Bev")
                 .toolbar(viewModel.beers.isEmpty ? .hidden : .automatic, for: .navigationBar)
                 .toolbar { ToolbarItem(placement: .navigationBarTrailing) { refreshButton } }
-                .alert(isPresented: $viewModel.showAlert) { errorAlert }
-                .task { await viewModel.loadBeers() }
         }
+        .alert(isPresented: $viewModel.showAlert) { errorAlert }
+        .refreshable { viewModel.refreshBeers() }
+        .task { await viewModel.loadBeers() }
     }
     
-    private var beersView: some View {
+    private var beerListView: some View {
         ScrollView {
-            VStack {
-                ForEach(viewModel.beers) { beer in
-                    BeerView(beer: beer)
-                }
+            ForEach(viewModel.beers) { beer in
+                NavigationLink(value: beer, label: {
+                    BeerListCell(beer: beer)
+                })
             }
         }
+        .navigationDestination(for: Beer.self, destination: {
+            BeerDetailView(beer: $0)
+        })
     }
     
     private var refreshButton: some View {

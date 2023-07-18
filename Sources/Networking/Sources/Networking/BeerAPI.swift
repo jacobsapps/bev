@@ -12,11 +12,12 @@ public protocol BeerAPI {
     func getBeers() async throws -> [Beer]
 }
 
+public enum BeerAPIError: Error {
+    case couldNotConstructURL
+    case offline
+}
+
 public final class BeerAPIImpl: BeerAPI {
-    
-    public enum BeerAPIError: Error {
-        case couldNotConstructURL
-    }
     
     private enum Constants {
         static let baseURL = "https://api.punkapi.com/v2/"
@@ -49,7 +50,17 @@ public final class BeerAPIImpl: BeerAPI {
             throw BeerAPIError.couldNotConstructURL
         }
         
-        let data = try await session.data(from: url).0
-        return try decoder.decode([Beer].self, from: data)
+        do {
+            let data = try await session.data(from: url).0
+            return try decoder.decode([Beer].self, from: data)
+            
+        } catch let error as NSError
+                    where error.domain == NSURLErrorDomain
+                    && error.code == NSURLErrorNotConnectedToInternet {
+            throw BeerAPIError.offline
+            
+        } catch {
+            throw error
+        }
     }
 }

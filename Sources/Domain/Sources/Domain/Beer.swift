@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Beer: Codable, Equatable, Identifiable {
+public struct Beer: Codable, Equatable, Identifiable, Hashable {
     
     public let id: Int
     public let name: String
@@ -45,6 +45,10 @@ public struct Beer: Codable, Equatable, Identifiable {
     
     public static func == (lhs: Beer, rhs: Beer) -> Bool {
         lhs.id == rhs.id
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
     
     public static func sample() -> Beer {

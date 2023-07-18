@@ -9,12 +9,13 @@ import Domain
 import Repository
 import SwiftUI
 
-struct BeerView: View {
+struct BeerListCell: View {
     
     let beer: Beer
     
     var body: some View {
         beerContainer
+            .frame(height: 144)
             .cornerRadius(12)
             .shadow(color: .primary.opacity(0.16),
                     radius: 22 / UIScreen.main.scale,
@@ -28,6 +29,7 @@ struct BeerView: View {
         beerDetails
             .padding(.vertical, 8)
             .padding(.leading, 136)
+            .padding(.trailing, 8)
             .background(
                 ZStack {
                     Color(UIColor.systemBackground)
@@ -73,6 +75,7 @@ struct BeerView: View {
                 .foregroundColor(.primary.opacity(0.9))
                 .multilineTextAlignment(.leading)
                 .lineSpacing(2)
+                .truncationMode(.tail)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
