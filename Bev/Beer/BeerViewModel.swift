@@ -14,6 +14,7 @@ import SwiftUI
 final class BeerViewModel: ObservableObject {
     
     @Published private(set) var beers: [Beer] = []
+    @Published private(set) var isLoading: Bool = false
     @Published var showAlert: Bool = false
     
     private(set) var errorMessage: String?
@@ -38,20 +39,29 @@ final class BeerViewModel: ObservableObject {
     
     private func setupBeerListener(on repo: BeerRepository) {
         repo.beersPublisher
-            .receive(on: DispatchQueue.main)
+            .receive(on: RunLoop.main)
             .sink(receiveValue: { [weak self] in
-                self?.handleBeer(from: $0)
+                self?.handleBeer(loadingState: $0)
             }).store(in: &cancelBag)
     }
     
-    private func handleBeer(from result: Result<[Beer], Error>) {
-        switch result {
+    private func handleBeer(loadingState: LoadingState<[Beer]>) {
+        switch loadingState {
+        case .idle:
+            isLoading = false
+            return
+            
+        case .loading:
+            isLoading = true
+            
         case .success(let beers):
+            isLoading = false
             self.beers = beers
             
         case .failure(let error):
-            errorMessage = error.localizedDescription
+            isLoading = false
             showAlert.toggle()
+            errorMessage = error.localizedDescription
         }
     }
 }

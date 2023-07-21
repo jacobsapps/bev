@@ -13,11 +13,11 @@ import TestUtilities
 
 public final class MockBeerRepository: BeerRepository {
     
-    public var beersPublisher = PassthroughSubject<Result<[Beer], Error>, Never>()
+    public var beersPublisher = CurrentValueSubject<LoadingState<[Beer]>, Never>(.idle)
     
     public init() { }
     
-    public var stubLoadBeersResponse: Result<[Beer], Error>?
+    public var stubLoadBeersResponse: LoadingState<[Beer]>?
     public var didLoadBeers: (() -> Void)?
     public var loadBeersCallCount = 0
     public func loadBeers() async {

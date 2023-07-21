@@ -10,14 +10,21 @@ import Domain
 import Foundation
 import Networking
 
+public enum LoadingState<T> {
+    case idle
+    case loading
+    case success(T)
+    case failure(Error)
+}
+
 public protocol BeerRepository {
-    var beersPublisher: PassthroughSubject<Result<[Beer], Error>, Never> { get }
+    var beersPublisher: CurrentValueSubject<LoadingState<[Beer]>, Never> { get }
     func loadBeers() async
 }
 
 public final class BeerRepositoryImpl: BeerRepository {
     
-    public private(set) var beersPublisher = PassthroughSubject<Result<[Beer], Error>, Never>()
+    public private(set) var beersPublisher = CurrentValueSubject<LoadingState<[Beer]>, Never>(.idle)
     
     private let api: BeerAPI
     
@@ -26,6 +33,7 @@ public final class BeerRepositoryImpl: BeerRepository {
     }
     
     public func loadBeers() async {
+        beersPublisher.send(.loading)
         do {
             let beers = try await api.getBeers()
             beersPublisher.send(.success(beers))

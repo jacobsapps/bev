@@ -51,7 +51,7 @@ struct BeerListView: View {
     
     @ViewBuilder
     private var loadingIndicator: some View {
-        if viewModel.beers.isEmpty {
+        if viewModel.isLoading {
             ProgressView()
         }
     }

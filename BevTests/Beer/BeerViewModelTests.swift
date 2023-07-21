@@ -8,6 +8,7 @@
 import Combine
 import Domain
 import RepositoryMocks
+import Networking
 import XCTest
 @testable import Bev
 
@@ -71,6 +72,32 @@ final class BeerViewModelTests: XCTestCase {
         }
         waitForExpectations(timeout: 1)
         XCTAssertEqual(sampleBeers, sut.beers)
+    }
+    
+    func test_listenerSentOfflineError_setsErrorMessageAndTogglesAlert() {
+        let testError = BeerAPIError.offline
+        mockBeerRepository.beersPublisher.send(.failure(testError))
+        let exp = expectation(description: #function)
+        cancel = sut.$showAlert.sink {
+            guard $0 else { return }
+            exp.fulfill()
+        }
+        waitForExpectations(timeout: 1)
+        XCTAssertEqual(sut.errorMessage, BeerAPIError.offline.errorDescription)
+        XCTAssertTrue(sut.showAlert)
+    }
+    
+    func test_listenerSentURLError_setsErrorMessageAndTogglesAlert() {
+        let testError = BeerAPIError.couldNotConstructURL
+        mockBeerRepository.beersPublisher.send(.failure(testError))
+        let exp = expectation(description: #function)
+        cancel = sut.$showAlert.sink {
+            guard $0 else { return }
+            exp.fulfill()
+        }
+        waitForExpectations(timeout: 1)
+        XCTAssertEqual(sut.errorMessage, BeerAPIError.couldNotConstructURL.errorDescription)
+        XCTAssertTrue(sut.showAlert)
     }
     
     func test_listenerSentError_setsErrorMessageAndTogglesAlert() {

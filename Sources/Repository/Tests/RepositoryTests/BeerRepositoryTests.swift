@@ -33,7 +33,7 @@ final class BeerRepositoryTests: XCTestCase {
         mockBeerAPI = nil
         super.tearDown()
     }
- 
+    
     func test_loadBeers_callsAPI() async {
         mockBeerAPI.stubBeersResponse = .success([])
         await sut.loadBeers()
@@ -41,7 +41,7 @@ final class BeerRepositoryTests: XCTestCase {
     }
     
     func test_loadBeers_success_sendsBeersToPublisher() {
-
+        
         let expectedBeers = [Beer.sample()]
         mockBeerAPI.stubBeersResponse = .success(expectedBeers)
         
@@ -57,7 +57,7 @@ final class BeerRepositoryTests: XCTestCase {
         
         let testError = TestRepositoryError.testError
         mockBeerAPI.stubBeersResponse = .failure(testError)
-
+        
         if case .failure(let error) = getLoadBeersTestResult() {
             XCTAssertEqual(error as? TestRepositoryError, testError)
             
@@ -66,14 +66,16 @@ final class BeerRepositoryTests: XCTestCase {
         }
     }
     
-    private func getLoadBeersTestResult() -> Result<[Beer], Error>? {
-        var testResult: Result<[Beer], Error>?
+    private func getLoadBeersTestResult() -> LoadingState<[Beer]>? {
+        var testResult: LoadingState<[Beer]>?
         
         let exp = expectation(description: #function)
-        cancel = sut.beersPublisher.sink(receiveValue: {
-            testResult = $0
-            exp.fulfill()
-        })
+        cancel = sut.beersPublisher
+            .dropFirst(2)
+            .sink(receiveValue: {
+                testResult = $0
+                exp.fulfill()
+            })
         
         Task {
             await sut.loadBeers()

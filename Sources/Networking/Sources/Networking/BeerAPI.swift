@@ -12,9 +12,20 @@ public protocol BeerAPI {
     func getBeers() async throws -> [Beer]
 }
 
-public enum BeerAPIError: Error {
+public enum BeerAPIError: LocalizedError {
+    
     case couldNotConstructURL
     case offline
+    
+    public var errorDescription: String? {
+        switch self {
+        case .couldNotConstructURL:
+            return "Could not construct URL correctly"
+
+        case .offline:
+            return "You appear to be offline"
+        }
+    }
 }
 
 public final class BeerAPIImpl: BeerAPI {
