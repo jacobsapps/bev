@@ -51,8 +51,8 @@ public struct Beer: Codable, Equatable, Identifiable, Hashable {
         hasher.combine(id)
     }
     
-    public static func sample() -> Beer {
-        Beer(id: 1,
+    public static func sample(id: Int = 1, name: String = "Beer") -> Beer {
+        Beer(id: id,
              name: "Beer",
              tagline: "A nice beer",
              firstBrewed: "09/2007",

@@ -13,6 +13,11 @@ import SwiftUI
 @MainActor
 final class BeerViewModel: ObservableObject {
     
+    enum BeerListeningStrategy {
+        case combine
+        case asyncSequence
+    }
+    
     @Published private(set) var beers: [Beer] = []
     @Published private(set) var isLoading: Bool = false
     @Published var showAlert: Bool = false
@@ -22,9 +27,18 @@ final class BeerViewModel: ObservableObject {
     
     private let repository: BeerRepository
     
-    init(repository: BeerRepository = BeerRepositoryImpl()) {
+    init(repository: BeerRepository = BeerRepositoryImpl(), strategy: BeerListeningStrategy = .combine) {
         self.repository = repository
-        setupBeerListener(on: repository)
+        
+        switch strategy {
+        case .combine:
+            setupBeerListener()
+
+        case .asyncSequence:
+            Task {
+                await setupBeerSequence()
+            }
+        }
     }
     
     func loadBeers() async {
@@ -37,12 +51,18 @@ final class BeerViewModel: ObservableObject {
         }
     }
     
-    private func setupBeerListener(on repo: BeerRepository) {
-        repo.beersPublisher
+    private func setupBeerListener() {
+        repository.beersPublisher
             .receive(on: RunLoop.main)
             .sink(receiveValue: { [weak self] in
                 self?.handleBeer(loadingState: $0)
             }).store(in: &cancelBag)
+    }
+    
+    private func setupBeerSequence() async {
+        for await loadingState in repository.beersPublisher.values {
+            handleBeer(loadingState: loadingState)
+        }
     }
     
     private func handleBeer(loadingState: LoadingState<[Beer]>) {

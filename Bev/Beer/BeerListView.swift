@@ -27,7 +27,26 @@ struct BeerListView: View {
         .task { await viewModel.loadBeers() }
     }
     
+    @ViewBuilder
     private var beerListView: some View {
+        if viewModel.beers.isEmpty {
+            beersSkeletonView
+            
+        } else {
+            beersScrollView
+        }
+    }
+    
+    private var beersSkeletonView: some View {
+        ForEach([Beer.sample(id: 1, name: "Sample 1"),
+                 Beer.sample(id: 2, name: "Tankard 2"),
+                 Beer.sample(id: 3, name: "Bev 3"),
+                 Beer.sample(id: 4, name: "Gigantic Beer 4")]) { beer in
+            BeerListCell(beer: beer)
+        }.redacted(reason: .placeholder)
+    }
+    
+    private var beersScrollView: some View {
         ScrollView {
             ForEach(viewModel.beers) { beer in
                 NavigationLink(value: beer, label: {
