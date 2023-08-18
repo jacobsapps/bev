@@ -32,7 +32,6 @@ final class BeerViewModelTests: XCTestCase {
     override func setUp() {
         super.setUp()
         mockBeerRepository = MockBeerRepository()
-        sut = BeerViewModel(repository: mockBeerRepository)
     }
     
     override func tearDown() {
@@ -41,19 +40,24 @@ final class BeerViewModelTests: XCTestCase {
         super.tearDown()
     }
     
-    func test_initialState() {
+    // MARK: - Combine -
+    
+    func test_initialState_withCombine() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .combine)
         XCTAssertTrue(sut.beers.isEmpty)
         XCTAssertFalse(sut.showAlert)
         XCTAssertNil(sut.errorMessage)
     }
     
-    func test_loadBeers_callsLoadOnRepository() async {
+    func test_loadBeers_callsLoadOnRepository_withCombine() async {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .combine)
         mockBeerRepository.stubLoadBeersResponse = .success([])
         await sut.loadBeers()
         XCTAssertEqual(mockBeerRepository.loadBeersCallCount, 1)
     }
     
-    func test_refreshBeers_tellsRepositoryToLoad() {
+    func test_refreshBeers_tellsRepositoryToLoad_withCombine() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .combine)
         mockBeerRepository.stubLoadBeersResponse = .success([])
         let exp = expectation(description: #function)
         mockBeerRepository.didLoadBeers = { exp.fulfill() }
@@ -62,19 +66,22 @@ final class BeerViewModelTests: XCTestCase {
         XCTAssertEqual(mockBeerRepository.loadBeersCallCount, 1)
     }
     
-    func test_listenerSentBeersSuccessfully_setsBeers() {
+    func test_listenerSentBeersSuccessfully_setsBeers_withCombine() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .combine)
         let sampleBeers = [Beer.sample()]
         mockBeerRepository.beersPublisher.send(.success(sampleBeers))
         let exp = expectation(description: #function)
-        cancel = sut.$beers.sink {
-            guard !$0.isEmpty else { return }
-            exp.fulfill()
-        }
+        cancel = sut.$beers
+            .dropFirst()
+            .sink { _ in
+                exp.fulfill()
+            }
         waitForExpectations(timeout: 1)
         XCTAssertEqual(sampleBeers, sut.beers)
     }
     
-    func test_listenerSentOfflineError_setsErrorMessageAndTogglesAlert() {
+    func test_listenerSentOfflineError_setsErrorMessageAndTogglesAlert_withCombine() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .combine)
         let testError = BeerAPIError.offline
         mockBeerRepository.beersPublisher.send(.failure(testError))
         let exp = expectation(description: #function)
@@ -87,7 +94,8 @@ final class BeerViewModelTests: XCTestCase {
         XCTAssertTrue(sut.showAlert)
     }
     
-    func test_listenerSentURLError_setsErrorMessageAndTogglesAlert() {
+    func test_listenerSentURLError_setsErrorMessageAndTogglesAlert_withCombine() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .combine)
         let testError = BeerAPIError.couldNotConstructURL
         mockBeerRepository.beersPublisher.send(.failure(testError))
         let exp = expectation(description: #function)
@@ -100,7 +108,90 @@ final class BeerViewModelTests: XCTestCase {
         XCTAssertTrue(sut.showAlert)
     }
     
-    func test_listenerSentError_setsErrorMessageAndTogglesAlert() {
+    func test_listenerSentError_setsErrorMessageAndTogglesAlert_withCombine() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .combine)
+        let testError = TestViewModelError.testError
+        mockBeerRepository.beersPublisher.send(.failure(testError))
+        let exp = expectation(description: #function)
+        cancel = sut.$showAlert.sink {
+            guard $0 else { return }
+            exp.fulfill()
+        }
+        waitForExpectations(timeout: 1)
+        XCTAssertEqual(sut.errorMessage, testError.localizedDescription)
+        XCTAssertTrue(sut.showAlert)
+    }
+    
+    // MARK: - AsyncSequence -
+    
+    func test_initialState_withAsyncSequence() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .combine)
+        XCTAssertTrue(sut.beers.isEmpty)
+        XCTAssertFalse(sut.showAlert)
+        XCTAssertNil(sut.errorMessage)
+    }
+    
+    func test_loadBeers_callsLoadOnRepository_withAsyncSequence() async {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .asyncSequence)
+        mockBeerRepository.stubLoadBeersResponse = .success([])
+        await sut.loadBeers()
+        XCTAssertEqual(mockBeerRepository.loadBeersCallCount, 1)
+    }
+    
+    func test_refreshBeers_tellsRepositoryToLoad_withAsyncSequence() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .asyncSequence)
+        mockBeerRepository.stubLoadBeersResponse = .success([])
+        let exp = expectation(description: #function)
+        mockBeerRepository.didLoadBeers = { exp.fulfill() }
+        sut.refreshBeers()
+        waitForExpectations(timeout: 1)
+        XCTAssertEqual(mockBeerRepository.loadBeersCallCount, 1)
+    }
+    
+    func test_listenerSentBeersSuccessfully_setsBeers_withAsyncSequence() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .asyncSequence)
+        let sampleBeers = [Beer.sample()]
+        mockBeerRepository.beersPublisher.send(.success(sampleBeers))
+        let exp = expectation(description: #function)
+        cancel = sut.$beers
+            .dropFirst()
+            .sink { _ in
+                exp.fulfill()
+            }
+        waitForExpectations(timeout: 1)
+        XCTAssertEqual(sampleBeers, sut.beers)
+    }
+    
+    func test_listenerSentOfflineError_setsErrorMessageAndTogglesAlert_withAsyncSequence() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .asyncSequence)
+        let testError = BeerAPIError.offline
+        mockBeerRepository.beersPublisher.send(.failure(testError))
+        let exp = expectation(description: #function)
+        cancel = sut.$showAlert.sink {
+            guard $0 else { return }
+            exp.fulfill()
+        }
+        waitForExpectations(timeout: 1)
+        XCTAssertEqual(sut.errorMessage, BeerAPIError.offline.errorDescription)
+        XCTAssertTrue(sut.showAlert)
+    }
+    
+    func test_listenerSentURLError_setsErrorMessageAndTogglesAlert_withAsyncSequence() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .asyncSequence)
+        let testError = BeerAPIError.couldNotConstructURL
+        mockBeerRepository.beersPublisher.send(.failure(testError))
+        let exp = expectation(description: #function)
+        cancel = sut.$showAlert.sink {
+            guard $0 else { return }
+            exp.fulfill()
+        }
+        waitForExpectations(timeout: 1)
+        XCTAssertEqual(sut.errorMessage, BeerAPIError.couldNotConstructURL.errorDescription)
+        XCTAssertTrue(sut.showAlert)
+    }
+    
+    func test_listenerSentError_setsErrorMessageAndTogglesAlert_withAsyncSequence() {
+        sut = BeerViewModel(repository: mockBeerRepository, strategy: .asyncSequence)
         let testError = TestViewModelError.testError
         mockBeerRepository.beersPublisher.send(.failure(testError))
         let exp = expectation(description: #function)

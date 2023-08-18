@@ -29,6 +29,7 @@ final class BeerRepositoryTests: XCTestCase {
     
     override func tearDown() {
         cancel?.cancel()
+        cancel = nil
         sut = nil
         mockBeerAPI = nil
         super.tearDown()
@@ -40,33 +41,33 @@ final class BeerRepositoryTests: XCTestCase {
         XCTAssertEqual(mockBeerAPI.getBeersCallCount, 1)
     }
     
-    func test_loadBeers_success_sendsBeersToPublisher() {
-        
+    func test_loadBeers_success_sendsBeersToPublisher() async {
+
         let expectedBeers = [Beer.sample()]
         mockBeerAPI.stubBeersResponse = .success(expectedBeers)
-        
-        if case .success(let beers) = getLoadBeersTestResult() {
+
+        if case .success(let beers) = await getLoadBeersTestResult() {
             XCTAssertEqual(beers, expectedBeers)
-            
+
         } else {
             XCTFail(#function)
         }
     }
     
-    func test_loadBeers_failure_sendsErrorToPublisher() {
-        
+    func test_loadBeers_failure_sendsErrorToPublisher() async {
+
         let testError = TestRepositoryError.testError
         mockBeerAPI.stubBeersResponse = .failure(testError)
-        
-        if case .failure(let error) = getLoadBeersTestResult() {
+
+        if case .failure(let error) = await getLoadBeersTestResult() {
             XCTAssertEqual(error as? TestRepositoryError, testError)
-            
+
         } else {
             XCTFail(#function)
         }
     }
     
-    private func getLoadBeersTestResult() -> LoadingState<[Beer]>? {
+    private func getLoadBeersTestResult() async -> LoadingState<[Beer]>? {
         var testResult: LoadingState<[Beer]>?
         
         let exp = expectation(description: #function)
@@ -77,12 +78,9 @@ final class BeerRepositoryTests: XCTestCase {
                 exp.fulfill()
             })
         
-        Task {
-            await sut.loadBeers()
-        }
-        
-        waitForExpectations(timeout: 1)
-        
+        await sut.loadBeers()
+        await fulfillment(of: [exp], timeout: 1)
+
         return testResult
     }
 }
